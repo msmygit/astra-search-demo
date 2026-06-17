@@ -179,10 +179,13 @@ export function hideLoading() {
 export function showError(message) {
     const errorState = document.getElementById('error-state');
     const errorMessage = document.getElementById('error-message');
+    const errorIcon = document.getElementById('error-icon');
     const emptyState = document.getElementById('empty-state');
     const resultsContainer = document.getElementById('results-container');
+    const isWakeUpMessage = typeof message === 'string' && message.toLowerCase().includes('waking up');
     
     if (errorMessage) errorMessage.textContent = message;
+    if (errorIcon) errorIcon.textContent = isWakeUpMessage ? '😴' : '⚠️';
     if (errorState) errorState.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     if (resultsContainer) resultsContainer.classList.add('hidden');

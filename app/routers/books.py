@@ -4,7 +4,11 @@ CRUD endpoints for library book documents.
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.database import library_book_repository
+from app.database import (
+    ASTRA_HIBERNATION_ERROR_CODE,
+    AstraSearchUnavailableError,
+    library_book_repository,
+)
 from app.models import (
     ErrorResponse,
     LibraryBookCreate,
@@ -174,6 +178,15 @@ async def search_library_books(search_filter: LibraryBookSearchRequest) -> Libra
             library_books=[LibraryBookResponse(**library_book) for library_book in library_books],
             total=total,
         )
+    except AstraSearchUnavailableError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=e.message,
+            headers={
+                "X-Error-Code": ASTRA_HIBERNATION_ERROR_CODE,
+                "X-Retryable": "true",
+            },
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Search failed: {str(e)}"

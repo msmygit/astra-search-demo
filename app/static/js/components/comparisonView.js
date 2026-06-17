@@ -14,12 +14,12 @@ export function renderComparisonResults(results, onBookClick) {
         const timeEl = column.querySelector('.comparison-time');
         
         if (modeResults.error) {
-            if (countEl) countEl.textContent = 'Error';
+            if (countEl) countEl.textContent = modeResults.retryable ? 'Waking up…' : 'Error';
             if (timeEl) timeEl.textContent = '';
             
             container.innerHTML = `
                 <div class="comparison-error">
-                    <span class="error-icon">⚠️</span>
+                    <span class="error-icon">${modeResults.retryable ? '😴' : '⚠️'}</span>
                     <p>${modeResults.error}</p>
                 </div>
             `;

@@ -1,12 +1,44 @@
 const API_BASE_URL = '/api/library-books';
 
+const ASTRA_HIBERNATION_ERROR_CODE = 'ASTRA_DB_HIBERNATING';
+
 class APIError extends Error {
-    constructor(message, status, data) {
+    constructor(message, status, data, code = null, retryable = false) {
         super(message);
         this.name = 'APIError';
         this.status = status;
         this.data = data;
+        this.code = code;
+        this.retryable = retryable;
     }
+}
+
+function normalizeErrorPayload(data, fallbackMessage) {
+    if (typeof data?.detail === 'string') {
+        return {
+            message: data.detail,
+            code: null,
+            retryable: false,
+        };
+    }
+
+    if (data?.detail && typeof data.detail === 'object') {
+        return {
+            message: data.detail.message || fallbackMessage,
+            code: data.detail.code || null,
+            retryable: Boolean(data.detail.retryable),
+        };
+    }
+
+    return {
+        message: fallbackMessage,
+        code: null,
+        retryable: false,
+    };
+}
+
+export function isAstraHibernationError(error) {
+    return error instanceof APIError && error.code === ASTRA_HIBERNATION_ERROR_CODE;
 }
 
 async function apiRequest(endpoint, options = {}) {
@@ -30,10 +62,13 @@ async function apiRequest(endpoint, options = {}) {
         }
 
         if (!response.ok) {
+            const errorPayload = normalizeErrorPayload(data, 'An error occurred');
             throw new APIError(
-                data?.detail || 'An error occurred',
+                errorPayload.message,
                 response.status,
-                data
+                data,
+                errorPayload.code,
+                errorPayload.retryable
             );
         }
 
@@ -154,7 +189,14 @@ export async function comparisonSearch(query, keywords = null, filter = null, li
         searches.push(
             semanticSearch(query, filter, 0, limit)
                 .then(result => ({ mode: 'semantic', ...result }))
-                .catch(error => ({ mode: 'semantic', error: error.message, library_books: [], total: 0 }))
+                .catch(error => ({
+                    mode: 'semantic',
+                    error: error.message,
+                    errorCode: error.code || null,
+                    retryable: Boolean(error.retryable),
+                    library_books: [],
+                    total: 0
+                }))
         );
         
         // Lexical search - uses keywords if provided, otherwise query
@@ -162,7 +204,14 @@ export async function comparisonSearch(query, keywords = null, filter = null, li
         searches.push(
             lexicalSearch(lexicalQuery, filter, 0, limit)
                 .then(result => ({ mode: 'lexical', ...result }))
-                .catch(error => ({ mode: 'lexical', error: error.message, library_books: [], total: 0 }))
+                .catch(error => ({
+                    mode: 'lexical',
+                    error: error.message,
+                    errorCode: error.code || null,
+                    retryable: Boolean(error.retryable),
+                    library_books: [],
+                    total: 0
+                }))
         );
         
         // Hybrid search - uses both query and keywords (or query for both if keywords empty)
@@ -170,7 +219,14 @@ export async function comparisonSearch(query, keywords = null, filter = null, li
         searches.push(
             hybridSearch(query, hybridKeywords, filter, 0, limit)
                 .then(result => ({ mode: 'hybrid', ...result }))
-                .catch(error => ({ mode: 'hybrid', error: error.message, library_books: [], total: 0 }))
+                .catch(error => ({
+                    mode: 'hybrid',
+                    error: error.message,
+                    errorCode: error.code || null,
+                    retryable: Boolean(error.retryable),
+                    library_books: [],
+                    total: 0
+                }))
         );
     } else {
         searches.push(
@@ -217,4 +273,4 @@ export async function healthCheck() {
     return response.json();
 }
 
-export { APIError };
+export { APIError, ASTRA_HIBERNATION_ERROR_CODE };

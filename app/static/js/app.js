@@ -21,6 +21,14 @@ function createBookDetailsHandler() {
     };
 }
 
+function getSearchErrorMessage(error, fallbackMessage = 'Search failed. Please try again.') {
+    if (API.isAstraHibernationError(error)) {
+        return error.message;
+    }
+
+    return error?.message || fallbackMessage;
+}
+
 async function handleBookMutation() {
     if (!state.lastSearchParams) {
         SearchResults.clearResults();
@@ -238,7 +246,7 @@ async function handleFilterSearch() {
         state.lastSearchParams = { mode: 'filter', filter, limit };
     } catch (error) {
         SearchResults.hideLoading();
-        SearchResults.showError(error.message || 'Search failed. Please try again.');
+        SearchResults.showError(getSearchErrorMessage(error));
         console.error('Filter search error:', error);
     }
 }
@@ -275,7 +283,7 @@ async function handleSemanticSearch() {
         state.lastSearchParams = { mode: 'semantic', query, filter, limit };
     } catch (error) {
         SearchResults.hideLoading();
-        SearchResults.showError(error.message || 'Search failed. Please try again.');
+        SearchResults.showError(getSearchErrorMessage(error));
         console.error('Semantic search error:', error);
     }
 }
@@ -312,7 +320,7 @@ async function handleLexicalSearch() {
         state.lastSearchParams = { mode: 'lexical', query, filter, limit };
     } catch (error) {
         SearchResults.hideLoading();
-        SearchResults.showError(error.message || 'Search failed. Please try again.');
+        SearchResults.showError(getSearchErrorMessage(error));
         console.error('Lexical search error:', error);
     }
 }
@@ -349,7 +357,7 @@ async function handleHybridSearch() {
         state.lastSearchParams = { mode: 'hybrid', query, filter, limit };
     } catch (error) {
         SearchResults.hideLoading();
-        SearchResults.showError(error.message || 'Search failed. Please try again.');
+        SearchResults.showError(getSearchErrorMessage(error));
         console.error('Hybrid search error:', error);
     }
 }
@@ -381,7 +389,7 @@ async function handleComparisonSearch() {
         state.lastSearchParams = { mode: 'comparison', query, keywords, limit };
     } catch (error) {
         SearchResults.hideLoading();
-        SearchResults.showError(error.message || 'Comparison search failed. Please try again.');
+        SearchResults.showError(getSearchErrorMessage(error, 'Comparison search failed. Please try again.'));
         console.error('Comparison search error:', error);
     }
 }

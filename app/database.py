@@ -5,6 +5,7 @@ AstraDB connection management and repository access.
 import logging
 from typing import Any, Dict, List, Optional
 
+import httpx
 from astrapy import DataAPIClient
 from astrapy.exceptions import DataAPIException
 
@@ -14,6 +15,45 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 logger = logging.getLogger(__name__)
+
+ASTRA_HIBERNATION_ERROR_CODE = "ASTRA_DB_HIBERNATING"
+ASTRA_HIBERNATION_USER_MESSAGE = (
+    "Astra DB is waking up from a quick nap right now. Give it a minute or two, "
+    "then try your search again."
+)
+
+
+class AstraSearchUnavailableError(RuntimeError):
+    """Raised when Astra search is temporarily unavailable, such as during hibernation."""
+
+    def __init__(self, message: str, error_code: str = ASTRA_HIBERNATION_ERROR_CODE) -> None:
+        super().__init__(message)
+        self.message = message
+        self.error_code = error_code
+
+
+def is_astra_hibernation_error(error: Exception) -> bool:
+    """Return True when the exception looks like Astra DB hibernation/warm-up behavior."""
+    error_text = str(error).lower()
+
+    if "503" in error_text and "service unavailable" in error_text:
+        return True
+
+    response = getattr(error, "response", None)
+    if response is not None and getattr(response, "status_code", None) == 503:
+        return True
+
+    cause = getattr(error, "__cause__", None)
+    if cause is not None and cause is not error:
+        return is_astra_hibernation_error(cause)
+
+    return False
+
+
+def raise_if_astra_hibernating(error: Exception) -> None:
+    """Raise a user-facing exception when Astra DB appears to be waking from hibernation."""
+    if is_astra_hibernation_error(error):
+        raise AstraSearchUnavailableError(ASTRA_HIBERNATION_USER_MESSAGE) from error
 
 
 class AstraConnectionManager:
@@ -288,9 +328,17 @@ class LibraryBookRepository:
 
         except DataAPIException as e:
             logger.error(f"Failed to search library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error searching library books: {str(e)}")
+            raise_if_astra_hibernating(e)
+            return [], 0
+        except AstraSearchUnavailableError:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error searching library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
 
     async def semantic_search_library_books(
@@ -328,9 +376,17 @@ class LibraryBookRepository:
 
         except DataAPIException as e:
             logger.error(f"Failed to perform semantic search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error performing semantic search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
+            return [], 0
+        except AstraSearchUnavailableError:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error performing semantic search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
 
     def get_lexical_terms_nltk(self, sentence):
@@ -388,9 +444,17 @@ class LibraryBookRepository:
 
         except DataAPIException as e:
             logger.error(f"Failed to perform lexical search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error performing lexical search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
+            return [], 0
+        except AstraSearchUnavailableError:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error performing lexical search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
 
     async def hybrid_search_library_books(
@@ -439,9 +503,17 @@ class LibraryBookRepository:
 
         except DataAPIException as e:
             logger.error(f"Failed to perform hybrid search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error performing hybrid search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
+            return [], 0
+        except AstraSearchUnavailableError:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error performing hybrid search for library books: {str(e)}")
+            raise_if_astra_hibernating(e)
             return [], 0
 
 
