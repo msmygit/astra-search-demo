@@ -13,7 +13,8 @@ readme = "README.md"
 requires-python = ">=3.13,<3.14"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "Pravin Bhat", email = "bhatpravin@gmail.com"}
+    {name = "Pravin Bhat", email = "bhatpravin@gmail.com"},
+    {name = "Madhavan Sridharan", email = "madhavan_5k@yahoo.com"}
 ]
 keywords = ["fastapi", "astradb", "search", "api", "crud"]
 classifiers = [
@@ -47,9 +48,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pravinbhat/astra-search-demo"
-Repository = "https://github.com/pravinbhat/astra-search-demo"
-Issues = "https://github.com/pravinbhat/astra-search-demo/issues"
+Homepage = "https://github.com/msmygit/astra-search-demo"
+Repository = "https://github.com/msmygit/astra-search-demo"
+Issues = "https://github.com/msmygit/astra-search-demo/issues"
 
 [tool.black]
 line-length = 100

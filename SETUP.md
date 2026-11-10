@@ -25,7 +25,7 @@ The setup script will:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/pravinbhat/astra-search-demo.git
+git clone https://github.com/msmygit/astra-search-demo.git
 cd astra-search-demo
 ```
 
